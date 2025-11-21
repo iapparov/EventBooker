@@ -287,8 +287,7 @@ async function confirmBooking() {
             return;
         }
 
-        const data = await res.json();
-        resultContainer.innerText = 'Booking confirmed! ID: ' + data.id;
+        resultContainer.innerText = 'Booking confirmed!';
 
     } catch (err) {
         console.error(err);

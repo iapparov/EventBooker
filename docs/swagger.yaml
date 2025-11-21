@@ -1,0 +1,388 @@
+basePath: /
+definitions:
+  dto.BookingResponse:
+    properties:
+      count:
+        type: integer
+      email_notification:
+        type: boolean
+      event_id:
+        type: string
+      expired_at:
+        type: string
+      id:
+        type: string
+      price:
+        type: number
+      status:
+        type: string
+      telegram_notification:
+        type: boolean
+      user_id:
+        type: string
+    type: object
+  dto.CreateBookingRequest:
+    properties:
+      count:
+        minimum: 1
+        type: integer
+      email_notification:
+        type: boolean
+      event_id:
+        type: string
+      telegram_notification:
+        type: boolean
+    required:
+    - count
+    - event_id
+    type: object
+  dto.CreateEventRequest:
+    properties:
+      booking_ttl:
+        minimum: 1
+        type: integer
+      date:
+        type: string
+      description:
+        type: string
+      max_count_people:
+        minimum: 1
+        type: integer
+      name:
+        type: string
+      price:
+        minimum: 0
+        type: number
+    required:
+    - booking_ttl
+    - date
+    - description
+    - max_count_people
+    - name
+    - price
+    type: object
+  dto.EventResponse:
+    properties:
+      booking_ttl:
+        type: integer
+      bookings:
+        items:
+          $ref: '#/definitions/dto.BookingResponse'
+        type: array
+      date:
+        type: string
+      description:
+        type: string
+      free_places:
+        type: integer
+      id:
+        type: string
+      max_count_people:
+        type: integer
+      name:
+        type: string
+      price:
+        type: number
+    type: object
+  dto.JWTResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  dto.TokenRefreshRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  dto.UserLoginRequest:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  dto.UserRegistrationRequest:
+    properties:
+      email:
+        type: string
+      login:
+        type: string
+      password:
+        type: string
+      telegram:
+        type: string
+    required:
+    - login
+    - password
+    type: object
+  dto.UserResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      login:
+        type: string
+      telegram:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: API для сервиса бронирования
+  title: EventBooker API
+  version: "1.0"
+paths:
+  /bookings:
+    post:
+      consumes:
+      - application/json
+      description: Book a number of seats for the authenticated user
+      parameters:
+      - description: Booking info
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateBookingRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.BookingResponse'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a booking for an event
+      tags:
+      - bookings
+  /bookings/{id}/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Confirm a previously created booking by booking ID
+      parameters:
+      - description: Booking ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Booking confirmed
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Confirm a booking
+      tags:
+      - bookings
+  /events:
+    post:
+      consumes:
+      - application/json
+      description: Create a new event for the authenticated user
+      parameters:
+      - description: Event info
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.CreateEventRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EventResponse'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Create a new event
+      tags:
+      - events
+  /events/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve an event and its bookings by event ID
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.EventResponse'
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get event by ID
+      tags:
+      - events
+  /users/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return JWT tokens
+      parameters:
+      - description: User login info
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserLoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.JWTResponse'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
+      tags:
+      - users
+  /users/refresh-token:
+    post:
+      consumes:
+      - application/json
+      description: Refresh access and refresh tokens using existing refresh token
+      parameters:
+      - description: Refresh token request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.TokenRefreshRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.JWTResponse'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Refresh JWT token
+      tags:
+      - users
+  /users/register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account
+      parameters:
+      - description: User registration info
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserRegistrationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/dto.UserResponse'
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - users
+swagger: "2.0"

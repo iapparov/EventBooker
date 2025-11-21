@@ -6,19 +6,18 @@ import (
 	"eventbooker/internal/config"
 	"eventbooker/internal/domain/user"
 	"fmt"
+	wbzlog "github.com/wb-go/wbf/zlog"
+	"golang.org/x/crypto/bcrypt"
 	"regexp"
 	"strconv"
 	"unicode"
 	"unicode/utf8"
-
-	wbzlog "github.com/wb-go/wbf/zlog"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService struct {
 	repo UserStorageProvider
-	jwt JwtAuthProvider
-	cfg *config.AppConfig
+	jwt  JwtAuthProvider
+	cfg  *config.AppConfig
 }
 
 type JwtAuthProvider interface {
@@ -27,23 +26,23 @@ type JwtAuthProvider interface {
 	RefreshTokens(refreshToken string) (*auth.JWTResponse, error)
 }
 
-type UserStorageProvider interface{
+type UserStorageProvider interface {
 	GetUser(login string) (*user.User, error)
 	SaveUser(user *user.User) error
 }
 
-func NewUserService (repo UserStorageProvider, jwt JwtAuthProvider, cfg *config.AppConfig) *UserService {
+func NewUserService(repo UserStorageProvider, jwt JwtAuthProvider, cfg *config.AppConfig) *UserService {
 	return &UserService{
 		repo: repo,
-		jwt: jwt,
-		cfg: cfg,
+		jwt:  jwt,
+		cfg:  cfg,
 	}
 }
 
-func (s *UserService) Login(Login, Password string) (*auth.JWTResponse, error){
+func (s *UserService) Login(Login, Password string) (*auth.JWTResponse, error) {
 	if Login == "" || Password == "" {
 		wbzlog.Logger.Debug().Msg("login or password cant be empty")
-		return nil , errors.New("login or password cant be empty")
+		return nil, errors.New("login or password cant be empty")
 	}
 
 	user, err := s.repo.GetUser(Login)
@@ -64,7 +63,7 @@ func (s *UserService) Login(Login, Password string) (*auth.JWTResponse, error){
 	return jwtresp, nil
 }
 
-func (s *UserService) Registration(Login, Password, Email, Telegram string) (*user.User, error){
+func (s *UserService) Registration(Login, Password, Email, Telegram string) (*user.User, error) {
 	if err := s.isValidLogin(Login); err != nil {
 		wbzlog.Logger.Debug().Err(err).Msg("invalid login")
 		return nil, err
@@ -90,7 +89,7 @@ func (s *UserService) Registration(Login, Password, Email, Telegram string) (*us
 		wbzlog.Logger.Error().Err(err).Msg("cant check existing user")
 		return nil, err
 	}
-	
+
 	if ch != nil {
 		wbzlog.Logger.Debug().Msg("user with this login already exists")
 		return nil, errors.New("user with this login already exists")
@@ -119,7 +118,7 @@ func (s *UserService) ValidateTokens(tokenStr string) (*auth.JWTPayload, error) 
 	return s.jwt.ValidateTokens(tokenStr)
 }
 
-func (s *UserService) isValidLogin(login string) (error) {
+func (s *UserService) isValidLogin(login string) error {
 	if utf8.RuneCountInString(login) < s.cfg.UserConfig.MinLength || utf8.RuneCountInString(login) > s.cfg.UserConfig.MaxLength {
 		return fmt.Errorf("invalid login length . Must be between %d and %d characters", s.cfg.UserConfig.MinLength, s.cfg.UserConfig.MaxLength)
 	}
@@ -199,7 +198,6 @@ func (s *UserService) isValidEmail(email string) error {
 		return errors.New("email length must be bigger than 6 characters")
 	}
 
-	
 	re := regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`) // для базовой проверки формата asda@asdasd.asdads
 	if !re.MatchString(email) {
 		return errors.New("invalid email format")

@@ -2,13 +2,13 @@ package di
 
 import (
 	"context"
-	"fmt"
-	wbgin "github.com/wb-go/wbf/ginext"
-	"eventbooker/internal/web/handlers"
-	"eventbooker/internal/web/routers"
-	"eventbooker/internal/storage/postgres"
 	"eventbooker/internal/broker/rabbit"
 	"eventbooker/internal/config"
+	"eventbooker/internal/storage/postgres"
+	"eventbooker/internal/web/handlers"
+	"eventbooker/internal/web/routers"
+	"fmt"
+	wbgin "github.com/wb-go/wbf/ginext"
 	"go.uber.org/fx"
 	"log"
 	"net/http"
@@ -53,7 +53,6 @@ func StartHTTPServer(lc fx.Lifecycle, eventHandler *handlers.EventHandler, userH
 		},
 	})
 }
-
 
 func ClosePostgresOnStop(lc fx.Lifecycle, postgres *postgres.Postgres) {
 	lc.Append(fx.Hook{

@@ -13,10 +13,10 @@ type AppConfig struct {
 	MailConfig     mailConfig     `mapstructure:"mail"`
 	RetrysConfig   RetrysConfig   `mapstructure:"retry_strategy"`
 	GinConfig      ginConfig      `mapstructure:"gin"`
-	JwtConfig JwtConfig 		  `mapstructure:"jwt"`
-	UserConfig UserConfig		  `mapstructure:"username_config"`
+	JwtConfig      JwtConfig      `mapstructure:"jwt"`
+	UserConfig     UserConfig     `mapstructure:"username_config"`
 	PasswordConfig PasswordConfig `mapstructure:"password_config"`
-	EventConfig EventConfig 	  `mapstructure:"event_config"`
+	EventConfig    EventConfig    `mapstructure:"event_config"`
 }
 
 type RetrysConfig struct {
@@ -39,15 +39,15 @@ type loggerConfig struct {
 }
 
 type RabbitmqConfig struct {
-	Host      string `mapstructure:"host" default:"localhost"`
-	Port      int    `mapstructure:"port" default:"5672"`
-	User      string
-	Password  string
-	ConnectionTimeout int `mapstructure:"connection_timeout"`
-	Heartbeat int `mapstructure:"heartbeat"`
-	ConnectionName string `mapstructure:"connection_name"`
-	Exchange  string `mapstructure:"exchange"`
-	QueueName string `mapstructure:"queue_name"`
+	Host              string `mapstructure:"host" default:"localhost"`
+	Port              int    `mapstructure:"port" default:"5672"`
+	User              string
+	Password          string
+	ConnectionTimeout int    `mapstructure:"connection_timeout"`
+	Heartbeat         int    `mapstructure:"heartbeat"`
+	ConnectionName    string `mapstructure:"connection_name"`
+	Exchange          string `mapstructure:"exchange"`
+	QueueName         string `mapstructure:"queue_name"`
 }
 
 type postgresConfig struct {
@@ -72,39 +72,39 @@ type telegramConfig struct {
 }
 
 type mailConfig struct {
-	SMTPHost     string
-	SMTPPort     int
-	SMTPEmail    string
-	SMTPPassword string
+	SMTPHost     string `mapstructure:"smtp_host" default:""`
+	SMTPPort     int    `mapstructure:"smtp_port" default:"587"`
+	SMTPEmail    string `mapstructure:"smtp_user" default:""`
+	SMTPPassword string `mapstructure:"smtp_password" default:""`
 }
 
 type JwtConfig struct {
-	JwtExpAccessToken int   `mapstructure:"jwt_exp_access_token"`
+	JwtExpAccessToken  int `mapstructure:"jwt_exp_access_token"`
 	JwtExpRefreshToken int `mapstructure:"jwt_exp_refresh_token"`
-	JwtAccessSecret string
-	JwtRefreshSecret string
+	JwtAccessSecret    string
+	JwtRefreshSecret   string
 }
 
 type UserConfig struct {
-	MinLength int 			 `mapstructure:"min_length"`
-	MaxLength int 			 `mapstructure:"max_length"`
+	MinLength         int    `mapstructure:"min_length"`
+	MaxLength         int    `mapstructure:"max_length"`
 	AllowedCharacters string `mapstructure:"allowed_characters"`
-	CaseInsesitive bool 	 `mapstructure:"case_insensitive"`
+	CaseInsesitive    bool   `mapstructure:"case_insensitive"`
 }
 
 type PasswordConfig struct {
-	MinLength int 	  `mapstructure:"min_length"`
-	MaxLength int 	  `mapstructure:"max_length"`
+	MinLength    int  `mapstructure:"min_length"`
+	MaxLength    int  `mapstructure:"max_length"`
 	RequireUpper bool `mapstructure:"require_upper"`
 	RequireLower bool `mapstructure:"require_lower"`
 	RequireDigit bool `mapstructure:"require_digit"`
 }
 
 type EventConfig struct {
-	NameMinLength int 		 `mapstructure:"name_min_length"`
-	NameMaxLegth int 		 `mapstructure:"name_max_length"`
-	DesctiptionMaXLength int `mapstructure:"desctiption_max_length"`
- 	DescriptionRequire bool  `mapstructure:"description_require"`
-	TTL []int 				 `mapstructure:"booking_ttl"`
-	SupportedTTLs map[int]bool `mapstructure:"-"`
+	NameMinLength        int          `mapstructure:"name_min_length"`
+	NameMaxLegth         int          `mapstructure:"name_max_length"`
+	DesctiptionMaXLength int          `mapstructure:"desctiption_max_length"`
+	DescriptionRequire   bool         `mapstructure:"description_require"`
+	TTL                  []int        `mapstructure:"booking_ttl"`
+	SupportedTTLs        map[int]bool `mapstructure:"-"`
 }

@@ -5,7 +5,9 @@ import (
 	"eventbooker/internal/config"
 	"eventbooker/internal/domain/booking"
 	"fmt"
+	"os"
 	"time"
+
 	"github.com/rabbitmq/amqp091-go"
 	wbrabbit "github.com/wb-go/wbf/rabbitmq"
 	"github.com/wb-go/wbf/retry"
@@ -13,9 +15,9 @@ import (
 )
 
 type RabbitService struct {
-	client *wbrabbit.RabbitClient
+	client    *wbrabbit.RabbitClient
 	publisher *wbrabbit.Publisher
-	consumer *wbrabbit.Consumer
+	consumer  *wbrabbit.Consumer
 }
 
 type StorageProvider interface {
@@ -40,19 +42,19 @@ func NewRabbitService(cfg *config.AppConfig, repo StorageProvider, email EmailPr
 		cfg.RabbitmqConfig.Port,
 	)
 	rabbitConfig := wbrabbit.ClientConfig{
-		URL: rabbitDSN,
+		URL:            rabbitDSN,
 		ConnectionName: cfg.RabbitmqConfig.ConnectionName,
 		ConnectTimeout: time.Duration(cfg.RabbitmqConfig.ConnectionTimeout) * time.Second,
-    	Heartbeat:      time.Duration(cfg.RabbitmqConfig.Heartbeat) * time.Second, // стабильное поддержание коннекта
+		Heartbeat:      time.Duration(cfg.RabbitmqConfig.Heartbeat) * time.Second, // стабильное поддержание коннекта
 		PublishRetry: retry.Strategy{
 			Attempts: cfg.RetrysConfig.Attempts,
-			Delay: cfg.RetrysConfig.Delay,
-			Backoff: cfg.RetrysConfig.Backoffs,
+			Delay:    cfg.RetrysConfig.Delay,
+			Backoff:  cfg.RetrysConfig.Backoffs,
 		},
 		ConsumeRetry: retry.Strategy{
 			Attempts: cfg.RetrysConfig.Attempts,
-			Delay: cfg.RetrysConfig.Delay,
-			Backoff: cfg.RetrysConfig.Backoffs,
+			Delay:    cfg.RetrysConfig.Delay,
+			Backoff:  cfg.RetrysConfig.Backoffs,
 		},
 	}
 
@@ -75,18 +77,22 @@ func NewRabbitService(cfg *config.AppConfig, repo StorageProvider, email EmailPr
 		Workers:       5,
 	}, BookingExpiredHandler(repo, email, tg))
 
-	go consumer.Start(context.Background())
+	go func() {
+		if err := consumer.Start(context.Background()); err != nil {
+			wbzlog.Logger.Error().Err(err).Msg("failed to start RabbitMQ consumer")
+			os.Exit(1)
+		}
+	}()
 	return &RabbitService{
-		client: client,
+		client:    client,
 		publisher: publisher,
-		consumer: consumer,
+		consumer:  consumer,
 	}, nil
 }
 
 func (s *RabbitService) Close() error {
 	return s.client.Close()
 }
-
 
 func declareInfrastructure(client *wbrabbit.RabbitClient, cfg *config.AppConfig) error {
 	// 1. DLX — когда TTL истёк
@@ -101,64 +107,58 @@ func declareInfrastructure(client *wbrabbit.RabbitClient, cfg *config.AppConfig)
 		return err
 	}
 
-	//
 	// 2. Очередь, куда падают ТОЛЬКО просроченные сообщения
-	//
 	if err := client.DeclareQueue(
-		"expired.queue",          // queue name
-		"booking.dlx.exchange",   // exchange
-		"booking.expired",        // routing key
-		true,                     // durable
-		false,                    // autoDelete
-		true,                     // exchange durable
-		nil,                      // args
+		"expired.queue",        // queue name
+		"booking.dlx.exchange", // exchange
+		"booking.expired",      // routing key
+		true,                   // durable
+		false,                  // autoDelete
+		true,                   // exchange durable
+		nil,                    // args
 	); err != nil {
 		return err
 	}
 
-    //
-    // 3. Delay exchange — publisher шлёт сюда
-    //
-    if err := client.DeclareExchange(
-        "booking.delay.exchange",
-        "direct",
-        true,
-        false,
-        false,
-        nil,
-    ); err != nil {
-        return err
-    }
+	// 3. Delay exchange — publisher шлёт сюда
+	if err := client.DeclareExchange(
+		"booking.delay.exchange",
+		"direct",
+		true,
+		false,
+		false,
+		nil,
+	); err != nil {
+		return err
+	}
 
-//
-    // 4. Delay queues — динамически на основе SupportedTTLs
-    //
-    for ttlMinutes := range cfg.EventConfig.SupportedTTLs {
+	// 4. Delay queues — динамически на основе SupportedTTLs
+	for ttlMinutes := range cfg.EventConfig.SupportedTTLs {
 
-        ttlMs := ttlMinutes * 60 * 1000 // Rabbit принимает TTL в миллисекундах
+		ttlMs := ttlMinutes * 60 * 1000 // Rabbit принимает TTL в миллисекундах
 
-        queueName := fmt.Sprintf("delay_%d.queue", ttlMinutes)
-        routingKey := fmt.Sprintf("delay_%d", ttlMinutes)
+		queueName := fmt.Sprintf("delay_%d.queue", ttlMinutes)
+		routingKey := fmt.Sprintf("delay_%d", ttlMinutes)
 
-        args := amqp091.Table{
-            "x-message-ttl":             ttlMs,
-            "x-dead-letter-exchange":    "booking.dlx.exchange",
-            "x-dead-letter-routing-key": "booking.expired",
-        }
+		args := amqp091.Table{
+			"x-message-ttl":             ttlMs,
+			"x-dead-letter-exchange":    "booking.dlx.exchange",
+			"x-dead-letter-routing-key": "booking.expired",
+		}
 
-        // объявляем delay очередь (с TTL + DLX)
-        if err := client.DeclareQueue(
-            queueName,
-            "booking.delay.exchange",
-            routingKey,
-            true,  // durable
-            false, // autoDelete
-            true,  // exchange durable
-            args,
-        ); err != nil {
-            return err
-        }
-    }
+		// объявляем delay очередь (с TTL + DLX)
+		if err := client.DeclareQueue(
+			queueName,
+			"booking.delay.exchange",
+			routingKey,
+			true,  // durable
+			false, // autoDelete
+			true,  // exchange durable
+			args,
+		); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

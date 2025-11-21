@@ -1,11 +1,10 @@
 package postgres
 
-
 import (
+	"eventbooker/internal/config"
 	"fmt"
 	wbdb "github.com/wb-go/wbf/dbpg"
 	wbzlog "github.com/wb-go/wbf/zlog"
-	"eventbooker/internal/config"
 )
 
 type Postgres struct {
@@ -65,4 +64,3 @@ func (p *Postgres) Close() error {
 	}
 	return nil
 }
-

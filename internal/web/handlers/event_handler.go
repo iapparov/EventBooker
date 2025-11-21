@@ -4,14 +4,14 @@ import (
 	"eventbooker/internal/domain/booking"
 	"eventbooker/internal/domain/event"
 	"eventbooker/internal/web/dto"
+	"fmt"
+	wbgin "github.com/wb-go/wbf/ginext"
 	"net/http"
 	"time"
-
-	wbgin "github.com/wb-go/wbf/ginext"
 )
 
 type EventHandler struct {
-	serviceEvent EventIFace
+	serviceEvent   EventIFace
 	serviceBooking BookingIFace
 }
 
@@ -27,12 +27,25 @@ type BookingIFace interface {
 
 func NewEventHandler(serviceEvent EventIFace, serviceBooking BookingIFace) *EventHandler {
 	return &EventHandler{
-		serviceEvent: serviceEvent,
+		serviceEvent:   serviceEvent,
 		serviceBooking: serviceBooking,
 	}
 }
 
-func (h *EventHandler) CreateEvent (ctx *wbgin.Context){
+// CreateEvent godoc
+// @Summary      Create a new event
+// @Description  Create a new event for the authenticated user
+// @Tags         events
+// @Accept       json
+// @Produce      json
+// @Param        body  body      dto.CreateEventRequest  true  "Event info"
+// @Success      200   {object}  dto.EventResponse
+// @Failure      400   {object}  map[string]string  "Invalid request"
+// @Failure      401   {object}  map[string]string  "Unauthorized"
+// @Failure      500   {object}  map[string]string  "Internal server error"
+// @Security     ApiKeyAuth
+// @Router       /events [post]
+func (h *EventHandler) CreateEvent(ctx *wbgin.Context) {
 	var req dto.CreateEventRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, wbgin.H{"error": err.Error()})
@@ -49,7 +62,7 @@ func (h *EventHandler) CreateEvent (ctx *wbgin.Context){
 		return
 	}
 	event, err := h.serviceEvent.CreateEvent(userId.(string), req.Name, req.Description, eventDate, req.BookingTTL, req.MaxCountPeople, req.Price)
-	if  err != nil {
+	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, wbgin.H{"error": err.Error()})
 		return
 	}
@@ -65,7 +78,18 @@ func (h *EventHandler) CreateEvent (ctx *wbgin.Context){
 	ctx.JSON(http.StatusOK, res)
 }
 
-func (h *EventHandler) GetEvent (ctx *wbgin.Context){
+// GetEvent godoc
+// @Summary      Get event by ID
+// @Description  Retrieve an event and its bookings by event ID
+// @Tags         events
+// @Accept       json
+// @Produce      json
+// @Param        id    path      string  true  "Event ID"
+// @Success      200   {object}  dto.EventResponse
+// @Failure      500   {object}  map[string]string  "Internal server error"
+// @Security     ApiKeyAuth
+// @Router       /events/{id} [get]
+func (h *EventHandler) GetEvent(ctx *wbgin.Context) {
 	eventId, _ := ctx.Params.Get("id")
 	event, err := h.serviceEvent.GetEvent(eventId)
 	if err != nil {
@@ -88,20 +112,33 @@ func (h *EventHandler) GetEvent (ctx *wbgin.Context){
 		BookingResponses = append(BookingResponses, bookingResp)
 	}
 	res := dto.EventResponse{
-		ID:             event.Id.String(),
-		Name:           event.Name,
-		Description:    event.Description,
-		Date:           event.Date.Format(time.RFC3339),
-		BookingTTL:     event.BookingTTL,
-		MaxCountPeople: event.MaxCountPeople,
-		FreePlaces:     event.FreePlaces,
-		Price:          event.Price,
+		ID:               event.Id.String(),
+		Name:             event.Name,
+		Description:      event.Description,
+		Date:             event.Date.Format(time.RFC3339),
+		BookingTTL:       event.BookingTTL,
+		MaxCountPeople:   event.MaxCountPeople,
+		FreePlaces:       event.FreePlaces,
+		Price:            event.Price,
 		BookingResponses: BookingResponses,
 	}
 	ctx.JSON(http.StatusOK, res)
 }
 
-func (h *EventHandler) CreateBooking (ctx *wbgin.Context){
+// CreateBooking godoc
+// @Summary      Create a booking for an event
+// @Description  Book a number of seats for the authenticated user
+// @Tags         bookings
+// @Accept       json
+// @Produce      json
+// @Param        body  body      dto.CreateBookingRequest  true  "Booking info"
+// @Success      200   {object}  dto.BookingResponse
+// @Failure      400   {object}  map[string]string  "Invalid request"
+// @Failure      401   {object}  map[string]string  "Unauthorized"
+// @Failure      500   {object}  map[string]string  "Internal server error"
+// @Security     ApiKeyAuth
+// @Router       /bookings [post]
+func (h *EventHandler) CreateBooking(ctx *wbgin.Context) {
 	var req dto.CreateBookingRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, wbgin.H{"error": err.Error()})
@@ -117,7 +154,7 @@ func (h *EventHandler) CreateBooking (ctx *wbgin.Context){
 		ctx.JSON(http.StatusInternalServerError, wbgin.H{"error": err.Error()})
 		return
 	}
-	
+
 	res := dto.BookingResponse{
 		ID:                   booking.ID.String(),
 		EventID:              booking.EventID.String(),
@@ -132,8 +169,20 @@ func (h *EventHandler) CreateBooking (ctx *wbgin.Context){
 	ctx.JSON(http.StatusOK, res)
 }
 
-func (h *EventHandler) ConfirmBooking (ctx *wbgin.Context){
-	bookingId, _ := ctx.Params.Get("booking_id")
+// ConfirmBooking godoc
+// @Summary      Confirm a booking
+// @Description  Confirm a previously created booking by booking ID
+// @Tags         bookings
+// @Accept       json
+// @Produce      json
+// @Param        id    path      string  true  "Booking ID"
+// @Success      200   {object}  map[string]string  "Booking confirmed"
+// @Failure      500   {object}  map[string]string  "Internal server error"
+// @Security     ApiKeyAuth
+// @Router       /bookings/{id}/confirm [post]
+func (h *EventHandler) ConfirmBooking(ctx *wbgin.Context) {
+	bookingId, _ := ctx.Params.Get("id")
+	fmt.Println(bookingId)
 	err := h.serviceBooking.ConfirmBooking(bookingId)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, wbgin.H{"error": err.Error()})

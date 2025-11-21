@@ -2,11 +2,11 @@ package auth
 
 import (
 	"errors"
-	"time"
 	"eventbooker/internal/config"
 	"eventbooker/internal/domain/user"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"time"
 )
 
 type JWTService struct {
@@ -59,21 +59,21 @@ func (s *JWTService) ValidateTokens(tokenStr string) (*JWTPayload, error) {
 
 // Обновление токенов по refresh
 func (s *JWTService) RefreshTokens(refreshToken string) (*JWTResponse, error) {
-    claims, err := s.validateRefreshToken(refreshToken)
-    if err != nil {
-        return nil, err
-    }
+	claims, err := s.validateRefreshToken(refreshToken)
+	if err != nil {
+		return nil, err
+	}
 
-    uuidStr, ok := claims["uuid"].(string)
-    if !ok {
-        return nil, errors.New("invalid refresh token payload")
-    }
+	uuidStr, ok := claims["uuid"].(string)
+	if !ok {
+		return nil, errors.New("invalid refresh token payload")
+	}
 
-    // Создаём "фейкового" пользователя только для генерации токенов
-    u := &user.User{Id: uuid.MustParse(uuidStr)}
+	// Создаём "фейкового" пользователя только для генерации токенов
+	u := &user.User{Id: uuid.MustParse(uuidStr)}
 
-    // Генерируем новую пару токенов
-    return s.GenerateTokens(u)
+	// Генерируем новую пару токенов
+	return s.GenerateTokens(u)
 }
 
 //// Вспомогательные приватные методы

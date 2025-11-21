@@ -14,12 +14,13 @@ type EmailChannel struct {
 }
 
 func NewEmailChannel(cfg *config.AppConfig) *EmailChannel {
-	return &EmailChannel{
+	EmailChannel := &EmailChannel{
 		smtpHost:  cfg.MailConfig.SMTPHost,
 		smtpPort:  cfg.MailConfig.SMTPPort,
 		smtpEmail: cfg.MailConfig.SMTPEmail,
 		smtp:      cfg.MailConfig.SMTPPassword,
 	}
+	return EmailChannel
 }
 
 func (s *EmailChannel) Send(email string, EventName string, Persons int) error {

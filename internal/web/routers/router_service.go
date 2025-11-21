@@ -1,10 +1,10 @@
 package routers
 
 import (
+	_ "eventbooker/docs"
+	"eventbooker/internal/web/handlers"
 	httpSwagger "github.com/swaggo/http-swagger"
 	wbgin "github.com/wb-go/wbf/ginext"
-	"eventbooker/internal/web/handlers"
-	// _ "imageProcessor/docs"
 )
 
 func RegisterRoutes(engine *wbgin.Engine, userhandler *handlers.UserHandler, eventhandler *handlers.EventHandler) {

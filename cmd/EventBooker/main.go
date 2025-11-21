@@ -11,9 +11,9 @@ import (
 	"eventbooker/internal/app/user"
 	"eventbooker/internal/auth"
 	"eventbooker/internal/broker/rabbit"
-	"eventbooker/internal/sender"
 	"eventbooker/internal/config"
 	"eventbooker/internal/di"
+	"eventbooker/internal/sender"
 	"eventbooker/internal/storage/postgres"
 	"eventbooker/internal/web/handlers"
 	wbzlog "github.com/wb-go/wbf/zlog"
@@ -34,7 +34,6 @@ func main() {
 			},
 			auth.NewJWTService,
 
-
 			func(pg *postgres.Postgres) rabbit.StorageProvider {
 				return pg
 			},
@@ -46,7 +45,6 @@ func main() {
 			},
 			rabbit.NewRabbitService,
 
-			
 			func(pg *postgres.Postgres) booking.BookingStorageProvider {
 				return pg
 			},
@@ -54,7 +52,7 @@ func main() {
 				return br
 			},
 			booking.NewBookingService,
-			
+
 			func(cfg *config.AppConfig) *config.EventConfig {
 				return &cfg.EventConfig
 			},
@@ -82,8 +80,7 @@ func main() {
 			func(srvc *booking.BookingService) handlers.BookingIFace {
 				return srvc
 			},
-			handlers.NewEventHandler, 
-
+			handlers.NewEventHandler,
 		),
 		fx.Invoke(
 			di.StartHTTPServer,

@@ -3,13 +3,11 @@ package postgres
 import (
 	"context"
 	"database/sql"
-	"eventbooker/internal/domain/user"
 	"errors"
+	"eventbooker/internal/domain/user"
 	"github.com/wb-go/wbf/retry"
 	wbzlog "github.com/wb-go/wbf/zlog"
 )
-
-
 
 func (p *Postgres) GetUser(login string) (*user.User, error) {
 	ctx := context.Background()
@@ -25,7 +23,7 @@ func (p *Postgres) GetUser(login string) (*user.User, error) {
 		wbzlog.Logger.Error().Err(err).Msg("Failed to execute get user query")
 		return nil, err
 	}
-	
+
 	err = row.Scan(
 		&u.Id,
 		&u.Login,
@@ -60,7 +58,7 @@ func (p *Postgres) GetUserbyUUID(id string) (*user.User, error) {
 		wbzlog.Logger.Error().Err(err).Msg("Failed to execute get user query")
 		return nil, err
 	}
-	
+
 	err = row.Scan(
 		&u.Id,
 		&u.Login,
@@ -81,8 +79,7 @@ func (p *Postgres) GetUserbyUUID(id string) (*user.User, error) {
 	return &u, nil
 }
 
-
-func (p *Postgres) SaveUser(user *user.User) error{
+func (p *Postgres) SaveUser(user *user.User) error {
 	ctx := context.Background()
 
 	query := `
@@ -105,4 +102,3 @@ func (p *Postgres) SaveUser(user *user.User) error{
 	}
 	return nil
 }
-

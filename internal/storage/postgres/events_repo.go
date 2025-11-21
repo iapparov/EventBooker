@@ -1,40 +1,45 @@
 package postgres
 
 import (
-	"eventbooker/internal/domain/event"
-	"eventbooker/internal/domain/booking"
 	"context"
-	wbzlog "github.com/wb-go/wbf/zlog"
-	"github.com/wb-go/wbf/retry"
+	"eventbooker/internal/domain/booking"
+	"eventbooker/internal/domain/event"
 	"fmt"
+	"github.com/wb-go/wbf/retry"
+	wbzlog "github.com/wb-go/wbf/zlog"
 )
 
-
-func (p *Postgres) CreateBooking(booking *booking.Booking) error{
+func (p *Postgres) CreateBooking(booking *booking.Booking) error {
 	ctx := context.Background()
 	tx, err := p.db.Master.BeginTx(ctx, nil)
-	defer tx.Rollback()
+	if err != nil {
+		wbzlog.Logger.Error().Err(err).Msg("cant start transaction in create_booking")
+		return err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	query := `
 		INSERT INTO bookings (id, event_id, user_id, count, price, status, created_at, expired_at, telegram_notification, email_notification, telegram_recepient, email_recepient)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
 
-	err = retry.DoContext(ctx, retry.Strategy{Attempts: p.cfg.Attempts, Delay: p.cfg.Delay, Backoff: p.cfg.Backoffs}, func() error { 
+	err = retry.DoContext(ctx, retry.Strategy{Attempts: p.cfg.Attempts, Delay: p.cfg.Delay, Backoff: p.cfg.Backoffs}, func() error {
 		_, err := tx.ExecContext(ctx, query,
-		booking.ID,
-		booking.EventID,
-		booking.UserID,
-		booking.Count,
-		booking.Price,
-		booking.Status,
-		booking.CreatedAt,
-		booking.ExpiredAt,
-		booking.TelegramNotification,
-		booking.EmailNotification,
-		booking.TelegramRecepient,
-		booking.EmailRecepient,
-		) 
+			booking.ID,
+			booking.EventID,
+			booking.UserID,
+			booking.Count,
+			booking.Price,
+			booking.Status,
+			booking.CreatedAt,
+			booking.ExpiredAt,
+			booking.TelegramNotification,
+			booking.EmailNotification,
+			booking.TelegramRecepient,
+			booking.EmailRecepient,
+		)
 		return err
 	})
 
@@ -49,9 +54,8 @@ func (p *Postgres) CreateBooking(booking *booking.Booking) error{
 		WHERE id = $2 AND available_seats >= $1
 	`
 
-
-	err = retry.DoContext(ctx, retry.Strategy{Attempts: p.cfg.Attempts, Delay: p.cfg.Delay, Backoff: p.cfg.Backoffs} , func() error { 
-		result,  err := tx.ExecContext(ctx, queryUpdateEvent, booking.Count, booking.EventID)
+	err = retry.DoContext(ctx, retry.Strategy{Attempts: p.cfg.Attempts, Delay: p.cfg.Delay, Backoff: p.cfg.Backoffs}, func() error {
+		result, err := tx.ExecContext(ctx, queryUpdateEvent, booking.Count, booking.EventID)
 		if err != nil {
 			wbzlog.Logger.Error().Err(err).Msg("Failed to execute update event query")
 			return err
@@ -81,8 +85,7 @@ func (p *Postgres) CreateBooking(booking *booking.Booking) error{
 	return nil
 }
 
-
-func (p *Postgres) ConfirmBooking(id string) error{
+func (p *Postgres) ConfirmBooking(id string) error {
 	ctx := context.Background()
 
 	query := `
@@ -95,10 +98,16 @@ func (p *Postgres) ConfirmBooking(id string) error{
 	return err
 }
 
-func (p *Postgres) CancelBooking(ctx context.Context, bookingid, eventid string) error{
+func (p *Postgres) CancelBooking(ctx context.Context, bookingid, eventid string) error {
 
 	tx, err := p.db.Master.BeginTx(ctx, nil)
-	defer tx.Rollback()
+	if err != nil {
+		wbzlog.Logger.Error().Err(err).Msg("cant start transaction in cancel_booking")
+		return err
+	}
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	querybooking := `
 		UPDATE bookings
@@ -106,8 +115,8 @@ func (p *Postgres) CancelBooking(ctx context.Context, bookingid, eventid string)
 		WHERE id = $1
 	`
 
-	err = retry.DoContext(ctx, retry.Strategy{Attempts: p.cfg.Attempts, Delay: p.cfg.Delay, Backoff: p.cfg.Backoffs} , func() error { 
-		result,  err := tx.ExecContext(ctx, querybooking, bookingid)
+	err = retry.DoContext(ctx, retry.Strategy{Attempts: p.cfg.Attempts, Delay: p.cfg.Delay, Backoff: p.cfg.Backoffs}, func() error {
+		result, err := tx.ExecContext(ctx, querybooking, bookingid)
 		if err != nil {
 			wbzlog.Logger.Error().Err(err).Msg("Failed to execute update booking query")
 			return err
@@ -135,8 +144,8 @@ func (p *Postgres) CancelBooking(ctx context.Context, bookingid, eventid string)
 		WHERE id = $2
 	`
 
-	err = retry.DoContext(ctx, retry.Strategy{Attempts: p.cfg.Attempts, Delay: p.cfg.Delay, Backoff: p.cfg.Backoffs} , func() error { 
-		result,  err := tx.ExecContext(ctx, queryevent, bookingid, eventid)
+	err = retry.DoContext(ctx, retry.Strategy{Attempts: p.cfg.Attempts, Delay: p.cfg.Delay, Backoff: p.cfg.Backoffs}, func() error {
+		result, err := tx.ExecContext(ctx, queryevent, bookingid, eventid)
 		if err != nil {
 			wbzlog.Logger.Error().Err(err).Msg("Failed to execute update event query")
 			return err
@@ -166,7 +175,7 @@ func (p *Postgres) CancelBooking(ctx context.Context, bookingid, eventid string)
 	return err
 }
 
-func (p *Postgres) GetBookingStatus(ctx context.Context, id string) (booking.BookingStatus, error){
+func (p *Postgres) GetBookingStatus(ctx context.Context, id string) (booking.BookingStatus, error) {
 	var status booking.BookingStatus
 
 	query := `
@@ -187,7 +196,7 @@ func (p *Postgres) GetBookingStatus(ctx context.Context, id string) (booking.Boo
 
 	return status, nil
 }
-func (p *Postgres) CreateEvent(event *event.Event) error{
+func (p *Postgres) CreateEvent(event *event.Event) error {
 	ctx := context.Background()
 
 	query := `
@@ -195,7 +204,7 @@ func (p *Postgres) CreateEvent(event *event.Event) error{
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 
-	_, err := p.db.ExecWithRetry(ctx, retry.Strategy{Attempts: p.cfg.Attempts, Delay: p.cfg.Delay, Backoff: p.cfg.Backoffs}, query, 
+	_, err := p.db.ExecWithRetry(ctx, retry.Strategy{Attempts: p.cfg.Attempts, Delay: p.cfg.Delay, Backoff: p.cfg.Backoffs}, query,
 		event.Id,
 		event.CreatorId,
 		event.Date,
@@ -215,10 +224,10 @@ func (p *Postgres) CreateEvent(event *event.Event) error{
 	return nil
 }
 
-func (p *Postgres) GetEvent(eventid string) (*event.Event, error){
+func (p *Postgres) GetEvent(eventid string) (*event.Event, error) {
 
 	ctx := context.Background()
-	
+
 	query := `
 		SELECT id, creator_id, date, name, description, total_seats, available_seats, price, booking_ttl
 		FROM events
@@ -245,7 +254,7 @@ func (p *Postgres) GetEvent(eventid string) (*event.Event, error){
 		return nil, err
 	}
 	var bookings []*booking.Booking
-	
+
 	queryBookings := `
 		SELECT id, event_id, user_id, count, price, status, created_at, expired_at, telegram_notification, email_notification, telegram_recepient, email_recepient
 		FROM bookings
@@ -255,7 +264,9 @@ func (p *Postgres) GetEvent(eventid string) (*event.Event, error){
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	for rows.Next() {
 		var b booking.Booking

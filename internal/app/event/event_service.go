@@ -5,15 +5,15 @@ import (
 	"eventbooker/internal/config"
 	"eventbooker/internal/domain/event"
 	"fmt"
-	"time"
-	"unicode/utf8"
 	"github.com/google/uuid"
 	wbzlog "github.com/wb-go/wbf/zlog"
+	"time"
+	"unicode/utf8"
 )
 
 type EventService struct {
 	repo EventStorageProvider
-	cfg *config.EventConfig
+	cfg  *config.EventConfig
 }
 
 type EventStorageProvider interface {
@@ -21,10 +21,10 @@ type EventStorageProvider interface {
 	GetEvent(evetnid string) (*event.Event, error)
 }
 
-func NewEventService (repo EventStorageProvider, cfg *config.EventConfig) *EventService {
+func NewEventService(repo EventStorageProvider, cfg *config.EventConfig) *EventService {
 	return &EventService{
 		repo: repo,
-		cfg: cfg,
+		cfg:  cfg,
 	}
 }
 
@@ -72,15 +72,15 @@ func (s *EventService) GetEvent(eventid string) (*event.Event, error) {
 	return s.repo.GetEvent(eventid)
 }
 
-func (s* EventService) isNameValid(name string) error {
+func (s *EventService) isNameValid(name string) error {
 	if name == "" || utf8.RuneCountInString(name) < s.cfg.NameMinLength || utf8.RuneCountInString(name) > s.cfg.NameMaxLegth {
 		return fmt.Errorf("name cant be empty, should be bigger than %d, and smaller than %d", s.cfg.NameMinLength, s.cfg.NameMaxLegth)
 	}
 	return nil
 }
 
-func (s* EventService) isDescriptionValid(descr string) error {
-	if s.cfg.DescriptionRequire && descr == ""{
+func (s *EventService) isDescriptionValid(descr string) error {
+	if s.cfg.DescriptionRequire && descr == "" {
 		return errors.New("description required")
 	}
 	if utf8.RuneCountInString(descr) > s.cfg.DesctiptionMaXLength {

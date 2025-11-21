@@ -1,14 +1,15 @@
 package booking
 
 import (
+	"errors"
 	"github.com/google/uuid"
 	"time"
 )
 
 type BookingStatus string
 
-const(
-	BookingStatusCreated BookingStatus = "created"
+const (
+	BookingStatusCreated   BookingStatus = "created"
 	BookingStatusCancelled BookingStatus = "canceled"
 	BookingStatusConfirmed BookingStatus = "confirmed"
 )
@@ -17,16 +18,16 @@ type Booking struct {
 	ID                   uuid.UUID     `json:"id"`
 	EventID              uuid.UUID     `json:"event_id"`
 	UserID               uuid.UUID     `json:"user_id"`
-	EventName			 string		   `json:"event_name"`
+	EventName            string        `json:"event_name"`
 	Count                int           `json:"count"`
 	Price                float64       `json:"price"`
 	Status               BookingStatus `json:"status"`
 	CreatedAt            time.Time     `json:"created_at"`
 	ExpiredAt            time.Time     `json:"expired_at"`
 	TelegramNotification bool          `json:"telegram_notification"`
-	TelegramRecepient string 		   `json:"telegram_recepient"`
+	TelegramRecepient    string        `json:"telegram_recepient"`
 	EmailNotification    bool          `json:"email_notification"`
-	EmailRecepient string 		       `json:"email_recepient"`
+	EmailRecepient       string        `json:"email_recepient"`
 }
 
 func NewBooking(eventId, userId, TelegramRecepient, EmailRecepient, EventName string, telegramNotification, emailNotification bool, count int, expiredAt int, price float64) (*Booking, error) {
@@ -39,25 +40,25 @@ func NewBooking(eventId, userId, TelegramRecepient, EmailRecepient, EventName st
 		return nil, err
 	}
 	if count <= 0 {
-		return nil, err
+		return nil, errors.New("count shoud be bigger than 0")
 	}
 	return &Booking{
-		ID: uuid.New(),
-		EventID: eId,
-		UserID: usId,
-		Count: count,
-		Price: price*float64(count),
-		CreatedAt: time.Now(),
-		ExpiredAt: time.Now().Add(time.Minute*time.Duration(expiredAt)),
-		Status: BookingStatusCreated,
+		ID:                   uuid.New(),
+		EventID:              eId,
+		UserID:               usId,
+		Count:                count,
+		Price:                price * float64(count),
+		CreatedAt:            time.Now(),
+		ExpiredAt:            time.Now().Add(time.Minute * time.Duration(expiredAt)),
+		Status:               BookingStatusCreated,
 		TelegramNotification: telegramNotification,
-		EmailNotification: emailNotification,
-		TelegramRecepient: TelegramRecepient,
-		EmailRecepient: EmailRecepient,
-		EventName: EventName,
+		EmailNotification:    emailNotification,
+		TelegramRecepient:    TelegramRecepient,
+		EmailRecepient:       EmailRecepient,
+		EventName:            EventName,
 	}, nil
 }
 
-func (b *Booking) StatusConfirmed (){	
+func (b *Booking) StatusConfirmed() {
 	b.Status = BookingStatusConfirmed
 }
