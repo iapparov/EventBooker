@@ -1,0 +1,65 @@
+server:
+  host: "localhost"
+  port: 8080
+
+logger:
+  level: "debug"
+
+gin:
+  mode: "release"
+
+rabbitmq:
+  host: "localhost"
+  port: 5672
+  connection_name: "booking-service"
+  connection_timeout: 5
+  heartbeat: 10
+  exchange: "notifications"
+  queue_name: "notifications_queue"
+
+db_config:
+  postgres:
+    host: "localhost"
+    port: 5433
+    ssl_mode: "disable"
+  max_open_conns: 5
+  max_idle_conns: 10
+  conn_max_lifetime: "100s"
+
+mail:
+  smtp_host: "smtp.gmail.com"
+  smtp_port: 587
+
+retry_strategy:
+  attempts: 3
+  delay: "1s"
+  backoffs: 2
+
+jwt:
+  jwt_exp_access_token: 15 # minutes
+  jwt_exp_refresh_token: 24 # hours
+
+username_config:
+  min_length: 3
+  max_length: 20
+  allowed_characters: "A-Za-z0-9_-"
+  case_insensitive: true
+
+password_config:
+  min_length: 8
+  max_length: 64
+  require_upper: true
+  require_lower: true
+  require_digit: true
+
+event_config:
+  name_min_length: 3
+  name_max_length: 40
+  desctiption_max_length: 200
+  description_require: true
+  booking_ttl:
+  - 15
+  - 30
+  - 45
+  - 60
+
