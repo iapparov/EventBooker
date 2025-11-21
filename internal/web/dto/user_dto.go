@@ -8,8 +8,8 @@ type UserLoginRequest struct {
 type UserRegistrationRequest struct {
 	Login    string `json:"login" binding:"required"`
 	Password string `json:"password" binding:"required"`
-	Email    string `json:"email" binding:"required,email"`
-	Telegram string `json:"telegram" binding:"required"`
+	Email    string `json:"email"`
+	Telegram string `json:"telegram"`
 }
 
 type TokenRefreshRequest struct {

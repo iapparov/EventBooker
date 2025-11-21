@@ -7,6 +7,7 @@ import (
 	"eventbooker/internal/domain/user"
 	"github.com/google/uuid"
 	wbzlog "github.com/wb-go/wbf/zlog"
+	"fmt"
 )
 
 type BookingService struct {
@@ -18,7 +19,7 @@ type BookingStorageProvider interface {
 	CreateBooking(booking *booking.Booking) error
 	ConfirmBooking(id string) error
 	GetEvent(evetnid string) (*event.Event, error)
-	GetUser(id string) (*user.User, error)
+	GetUserbyUUID(id string) (*user.User, error)
 }
 
 type BookingBrokerProvider interface {
@@ -52,7 +53,15 @@ func (s *BookingService) CreateBooking(eventId, userId string, telegramNotificat
 		wbzlog.Logger.Debug().Err(err).Msg("invalid user id")
 		return nil, err
 	}
-	user, err := s.bookingRepo.GetUser(userId)
+	user, err := s.bookingRepo.GetUserbyUUID(userId)
+	if err != nil {
+		wbzlog.Logger.Debug().Err(err).Msg("user not found")
+		return nil, fmt.Errorf("user not found")
+	}
+	if user == nil {
+		wbzlog.Logger.Debug().Msg("user is nil")
+		return nil, fmt.Errorf("user not found")
+	}
 	
 	booking, err := booking.NewBooking(eventId, userId,user.Telegram, user.Email, event.Name, telegramNotification, emailNotification, count, event.BookingTTL, event.Price)
 	if err != nil {

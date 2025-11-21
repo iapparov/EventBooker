@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"time"
-	"eventbooker/internal/domain/event"
 	"eventbooker/internal/domain/booking"
+	"eventbooker/internal/domain/event"
 	"eventbooker/internal/web/dto"
-	wbgin "github.com/wb-go/wbf/ginext"
 	"net/http"
+	"time"
+
+	wbgin "github.com/wb-go/wbf/ginext"
 )
 
 type EventHandler struct {
@@ -37,13 +38,17 @@ func (h *EventHandler) CreateEvent (ctx *wbgin.Context){
 		ctx.JSON(http.StatusBadRequest, wbgin.H{"error": err.Error()})
 		return
 	}
-	userId, _ := ctx.Params.Get("user_id")
+	userId, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, wbgin.H{"error": "user not found in context"})
+		return
+	}
 	eventDate, err := time.Parse(time.RFC3339, req.Date)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, wbgin.H{"error": "invalid date format"})
 		return
 	}
-	event, err := h.serviceEvent.CreateEvent(userId, req.Name, req.Description, eventDate, req.BookingTTL, req.MaxCountPeople, req.Price)
+	event, err := h.serviceEvent.CreateEvent(userId.(string), req.Name, req.Description, eventDate, req.BookingTTL, req.MaxCountPeople, req.Price)
 	if  err != nil {
 		ctx.JSON(http.StatusInternalServerError, wbgin.H{"error": err.Error()})
 		return
@@ -61,7 +66,7 @@ func (h *EventHandler) CreateEvent (ctx *wbgin.Context){
 }
 
 func (h *EventHandler) GetEvent (ctx *wbgin.Context){
-	eventId, _ := ctx.Params.Get("event_id")
+	eventId, _ := ctx.Params.Get("id")
 	event, err := h.serviceEvent.GetEvent(eventId)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, wbgin.H{"error": err.Error()})
@@ -102,12 +107,17 @@ func (h *EventHandler) CreateBooking (ctx *wbgin.Context){
 		ctx.JSON(http.StatusBadRequest, wbgin.H{"error": err.Error()})
 		return
 	}
-	userId, _ := ctx.Params.Get("user_id")
-	booking, err := h.serviceBooking.CreateBooking(req.EventID, userId, req.TelegramNotification, req.EmailNotification, req.Count)
+	userId, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, wbgin.H{"error": "user not found in context"})
+		return
+	}
+	booking, err := h.serviceBooking.CreateBooking(req.EventID, userId.(string), req.TelegramNotification, req.EmailNotification, req.Count)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, wbgin.H{"error": err.Error()})
 		return
 	}
+	
 	res := dto.BookingResponse{
 		ID:                   booking.ID.String(),
 		EventID:              booking.EventID.String(),

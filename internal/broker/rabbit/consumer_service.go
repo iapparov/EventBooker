@@ -12,7 +12,7 @@ import (
 
 func BookingExpiredHandler(repo StorageProvider, email EmailProvider, tg TelegramProvider) wbrabbit.MessageHandler {
     return func(ctx context.Context, msg amqp091.Delivery) error {
-
+        wbzlog.Logger.Info().Msgf("received booking expired message: %s", string(msg.Body))
         var payload booking.Booking
         if err := json.Unmarshal(msg.Body, &payload); err != nil {
             wbzlog.Logger.Error().Err(err).Msg("failed to unmarshal booking expired message")

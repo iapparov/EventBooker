@@ -58,6 +58,7 @@ event_config:
   desctiption_max_length: 200
   description_require: true
   booking_ttl:
+  - 1 #test
   - 15
   - 30
   - 45

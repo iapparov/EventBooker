@@ -75,6 +75,7 @@ func NewRabbitService(cfg *config.AppConfig, repo StorageProvider, email EmailPr
 		Workers:       5,
 	}, BookingExpiredHandler(repo, email, tg))
 
+	go consumer.Start(context.Background())
 	return &RabbitService{
 		client: client,
 		publisher: publisher,
@@ -88,10 +89,7 @@ func (s *RabbitService) Close() error {
 
 
 func declareInfrastructure(client *wbrabbit.RabbitClient, cfg *config.AppConfig) error {
-
-	//
 	// 1. DLX — когда TTL истёк
-	//
 	if err := client.DeclareExchange(
 		"booking.dlx.exchange",
 		"direct",

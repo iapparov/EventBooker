@@ -66,7 +66,7 @@ func (s *EventService) CreateEvent(userid, name, description string, date time.T
 func (s *EventService) GetEvent(eventid string) (*event.Event, error) {
 	_, err := uuid.Parse(eventid)
 	if err != nil {
-		wbzlog.Logger.Debug().Err(err).Msg("invalid event_id")
+		wbzlog.Logger.Debug().Err(err).Msg(fmt.Sprintf("invalid event_id: %s", eventid))
 		return nil, err
 	}
 	return s.repo.GetEvent(eventid)

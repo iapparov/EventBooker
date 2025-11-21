@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EventBooker</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+.container { max-width: 800px; margin: auto; }
+h2 { margin-top: 30px; }
+input, button { margin: 5px 0; padding: 5px; }
+.event { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; }
+.booking { margin-left: 20px; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>EventBooker</h1>
+
+<!-- Авторизация -->
+<h2>Login / Register</h2>
+<div>
+  <input type="text" id="login" placeholder="Login">
+  <input type="password" id="password" placeholder="Password">
+
+  <h4>Optional fields:</h4>
+  <input type="email" id="email" placeholder="Email (optional)">
+  <input type="text" id="telegram" placeholder="Telegram Chat ID (optional)">
+  <small>Чтобы получить chatId, нажмите <b>@Notifications_WBF_BOT</b> в Telegram, нажмите 'Start', и бот пришлёт вам chatId. Вставьте его сюда.</small>
+
+  <br>
+  <button onclick="login()">Login</button>
+  <button onclick="register()">Register</button>
+</div>
+
+<!-- Создание события -->
+<h2>Create Event</h2>
+<div>
+  <input type="text" id="eventName" placeholder="Event Name">
+  <textarea id="eventDescription" placeholder="Description"></textarea>
+  <input type="datetime-local" id="eventDate">
+  <input type="number" id="maxCountPeople" placeholder="Max people">
+  <input type="number" id="price" placeholder="Price">
+  <select id="bookingTTL">
+    <option value="1">1</option>
+    <option value="15">15</option>
+    <option value="30">30</option>
+    <option value="45">45</option>
+    <option value="60">60</option>
+  </select>
+  <button type="button" onclick="createNewEvent()">CreateEvent</button>
+  <div id="newEventId"></div>
+</div>
+
+<!-- Получение события по ID -->
+<h2>Get Event by ID</h2>
+<div>
+  <input type="text" id="getEventId" placeholder="Event ID">
+  <button type="button" onclick="loadEvent()">Load Event</button>
+  <div id="eventDetails"></div>
+</div>
+
+<!-- Бронирование -->
+<h2>Book Event</h2>
+<div>
+  <input type="text" id="bookEventId" placeholder="Event ID">
+
+  <label>
+    <input type="checkbox" id="telegramNotification"> Telegram Notification
+  </label>
+  <label>
+    <input type="checkbox" id="emailNotification"> Email Notification
+  </label>
+
+  <input type="number" id="bookingCount" placeholder="Number of people" min="1" value="1">
+
+  <button type="button" onclick="bookEvent()">Book</button>
+  <div id="newBookingId"></div>
+</div>
+
+<!-- Подтверждение бронирования -->
+<h2>Confirm Booking</h2>
+<div>
+  <input type="text" id="confirmBookingId" placeholder="Booking ID">
+  <button type="button" onclick="confirmBooking()">Confirm</button>
+  <div id="confirmBookingResult"></div>
+</div>
+
+
+</div>
+
+<script>
+let accessToken = '';
+let refreshToken = '';
+
+const API_BASE = 'http://localhost:8080/api';
+
+// Функции для авторизации
+async function login() {
+    const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            login: document.getElementById('login').value,
+            password: document.getElementById('password').value
+        })
+    });
+    const data = await res.json();
+    if(res.ok) {
+        accessToken = data.access_token;
+        refreshToken = data.refresh_token;
+        alert('Logged in');
+        loadEvents();
+    } else {
+        alert(data.error);
+    }
+}
+
+async function register() {
+    const res = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+            login: document.getElementById('login').value,
+            password: document.getElementById('password').value,
+            email: document.getElementById('email').value || '',
+            telegram: document.getElementById('telegram').value || ''
+        })
+    });
+    const data = await res.json();
+    if(res.ok) alert('Registered');
+    else alert(data.error);
+}
+// Create Event
+async function createNewEvent() {
+    try {
+        const res = await fetch(`${API_BASE}/events`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + accessToken
+            },
+            body: JSON.stringify({
+                name: document.getElementById('eventName').value,
+                description: document.getElementById('eventDescription').value,
+                date: new Date(document.getElementById('eventDate').value).toISOString(),
+                booking_ttl: parseInt(document.getElementById('bookingTTL').value),
+                max_count_people: parseInt(document.getElementById('maxCountPeople').value),
+                price: parseFloat(document.getElementById('price').value)
+            })
+        });
+
+        const data = await res.json();
+        if(res.ok){
+            alert('Event created! ID: ' + data.id);
+            document.getElementById('newEventId').innerText = 'New Event ID: ' + data.id;
+        } else alert('Error: ' + (data.error || JSON.stringify(data)));
+    } catch(err) {
+        console.error(err);
+        alert('Network error: ' + err.message);
+    }
+}
+
+// Load Event by ID with Bookings
+async function loadEvent() {
+    const eventId = document.getElementById('getEventId').value;
+    if (!eventId) { 
+        alert('Enter Event ID'); 
+        return; 
+    }
+
+    const res = await fetch(`${API_BASE}/events/${eventId}`, {
+        headers: {'Authorization': 'Bearer ' + accessToken}
+    });
+
+    const container = document.getElementById('eventDetails');
+    container.innerHTML = '';
+
+    if (!res.ok) {
+        container.innerText = 'Error loading event';
+        console.error(await res.text());
+        return;
+    }
+
+    const event = await res.json();
+
+    // Основная карточка события
+    let html = `
+        <div style="border:1px solid #ccc; padding:15px; margin-bottom:10px; border-radius:8px; background:#f9f9f9;">
+            <h2 style="margin:0 0 10px 0;">${event.name}</h2>
+            <p style="margin:0 0 5px 0;"><strong>Description:</strong> ${event.description}</p>
+            <p style="margin:0 0 5px 0;"><strong>Date:</strong> ${new Date(event.date).toLocaleString()}</p>
+            <p style="margin:0 0 5px 0;"><strong>Free Places:</strong> ${event.free_places}</p>
+            <p style="margin:0 0 10px 0;"><strong>Price:</strong> $${event.price}</p>
+            <h3 style="margin:0 0 5px 0;">Bookings:</h3>
+    `;
+
+    if (event.bookings && event.bookings.length > 0) {
+        html += '<ul style="padding-left:20px; margin:0;">';
+        event.bookings.forEach(b => {
+            html += `
+                <li style="margin-bottom:5px;">
+                    <strong>ID:</strong> ${b.id} |
+                    <strong>User:</strong> ${b.user_id} |
+                    <strong>Status:</strong> ${b.status} |
+                    <strong>Count:</strong> ${b.count} |
+                    <strong>Price:</strong> $${b.price} |
+                    <strong>Telegram:</strong> ${b.telegram_notification} |
+                    <strong>Email:</strong> ${b.email_notification} |
+                    <strong>Expires:</strong> ${new Date(b.expired_at).toLocaleString()}
+                </li>
+            `;
+        });
+        html += '</ul>';
+    } else {
+        html += '<p>No bookings yet.</p>';
+    }
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+// Book Event
+async function bookEvent() {
+    const eventId = document.getElementById('bookEventId').value;
+    if (!eventId) { 
+        alert('Enter Event ID'); 
+        return; 
+    }
+
+    const telegramNotification = document.getElementById('telegramNotification').checked;
+    const emailNotification = document.getElementById('emailNotification').checked;
+    const count = parseInt(document.getElementById('bookingCount').value) || 1;
+
+    try {
+        const res = await fetch(`${API_BASE}/events/${eventId}/book`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + accessToken
+            },
+            body: JSON.stringify({
+                event_id: eventId,
+                telegram_notification: telegramNotification,
+                email_notification: emailNotification,
+                count: count
+            })
+        });
+
+        if (!res.ok) {
+            console.error(await res.text());
+            alert('Booking failed');
+            return;
+        }
+
+        const data = await res.json();
+        alert('Booked! Booking ID: ' + data.id);
+        document.getElementById('newBookingId').innerText = 'New Booking ID: ' + data.id;
+
+    } catch (err) {
+        console.error(err);
+        alert('Network error: ' + err.message);
+    }
+}
+
+async function confirmBooking() {
+    const bookingId = document.getElementById('confirmBookingId').value;
+    if (!bookingId) {
+        alert('Enter Booking ID');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_BASE}/events/${bookingId}/confirm`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + accessToken
+            }
+        });
+
+        const resultContainer = document.getElementById('confirmBookingResult');
+
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error(errText);
+            resultContainer.innerText = 'Failed to confirm booking: ' + errText;
+            return;
+        }
+
+        const data = await res.json();
+        resultContainer.innerText = 'Booking confirmed! ID: ' + data.id;
+
+    } catch (err) {
+        console.error(err);
+        alert('Network error: ' + err.message);
+    }
+}
+</script>
+</body>
+</html>

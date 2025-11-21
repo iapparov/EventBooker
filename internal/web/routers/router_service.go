@@ -21,11 +21,9 @@ func RegisterRoutes(engine *wbgin.Engine, userhandler *handlers.UserHandler, eve
 
 	// защищённая группа ивентов
 	events := api.Group("/events", AuthMiddleware(userhandler.Service))
-	{
-		events.POST("", func(c *wbgin.Context) { eventhandler.CreateEvent(c) })
-		events.GET("/:id", func(c *wbgin.Context) { eventhandler.GetEvent(c) })
+	events.POST("", func(c *wbgin.Context) { eventhandler.CreateEvent(c) })
+	events.GET("/:id", func(c *wbgin.Context) { eventhandler.GetEvent(c) })
 
-		events.POST("/:id/book", func(c *wbgin.Context) { eventhandler.CreateBooking(c) })
-		events.POST("/:id/confirm", func(c *wbgin.Context) { eventhandler.ConfirmBooking(c) })
-	}
+	events.POST("/:id/book", func(c *wbgin.Context) { eventhandler.CreateBooking(c) })
+	events.POST("/:id/confirm", func(c *wbgin.Context) { eventhandler.ConfirmBooking(c) })
 }

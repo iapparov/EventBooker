@@ -5,12 +5,14 @@ import (
 	"eventbooker/internal/auth"
 	"eventbooker/internal/config"
 	"eventbooker/internal/domain/user"
+	"fmt"
 	"regexp"
+	"strconv"
+	"unicode"
 	"unicode/utf8"
+
 	wbzlog "github.com/wb-go/wbf/zlog"
 	"golang.org/x/crypto/bcrypt"
-	"fmt"
-	"unicode"
 )
 
 type UserService struct {
@@ -84,7 +86,7 @@ func (s *UserService) Registration(Login, Password, Email, Telegram string) (*us
 	}
 
 	ch, err := s.repo.GetUser(Login)
-	if err != nil && errors.Is(err, errors.New("user not found")) == false {
+	if err != nil && err.Error() != "user not found" {
 		wbzlog.Logger.Error().Err(err).Msg("cant check existing user")
 		return nil, err
 	}
@@ -172,15 +174,20 @@ func (s *UserService) isValidPassword(password string) error {
 }
 
 func (s *UserService) isValidTelegramUsername(username string) error {
-	l := utf8.RuneCountInString(username)
-	if l < 5|| l > 32 { // 5 и 32 это стандарт телеграмма
-		return fmt.Errorf("telegram username length must be between %d and %d characters", 5, 32)
-	}
+	// l := utf8.RuneCountInString(username)
+	// if l < 5|| l > 32 { // 5 и 32 это стандарт телеграмма
+	// 	return fmt.Errorf("telegram username length must be between %d and %d characters", 5, 32)
+	// }
 
-	// Telegram разрешает a-zA-Z0-9 и _
-	re := regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
-	if !re.MatchString(username) {
-		return errors.New("invalid telegram username format: must start with a letter or underscore and contain only letters, digits or underscores")
+	// // Telegram разрешает a-zA-Z0-9 и _
+	// re := regexp.MustCompile(`^[a-zA-Z_][a-zA-Z0-9_]*$`)
+	// if !re.MatchString(username) {
+	// 	return errors.New("invalid telegram username format: must start with a letter or underscore and contain only letters, digits or underscores")
+	// }
+
+	_, err := strconv.Atoi(username)
+	if err != nil {
+		return errors.New("telegram chat_id must be digit")
 	}
 
 	return nil

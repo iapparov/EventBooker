@@ -13,12 +13,7 @@ import (
 func (p *Postgres) CreateBooking(booking *booking.Booking) error{
 	ctx := context.Background()
 	tx, err := p.db.Master.BeginTx(ctx, nil)
-	defer func() {
-		err = tx.Rollback()
-		if err != nil {
-			wbzlog.Logger.Error().Err(err).Msg("Failed to rollback transaction")
-		}
-	}()
+	defer tx.Rollback()
 
 	query := `
 		INSERT INTO bookings (id, event_id, user_id, count, price, status, created_at, expired_at, telegram_notification, email_notification, telegram_recepient, email_recepient)
@@ -103,12 +98,7 @@ func (p *Postgres) ConfirmBooking(id string) error{
 func (p *Postgres) CancelBooking(ctx context.Context, bookingid, eventid string) error{
 
 	tx, err := p.db.Master.BeginTx(ctx, nil)
-	defer func() {
-		err = tx.Rollback()
-		if err != nil {
-			wbzlog.Logger.Error().Err(err).Msg("Failed to rollback transaction")
-		}
-	}()
+	defer tx.Rollback()
 
 	querybooking := `
 		UPDATE bookings
