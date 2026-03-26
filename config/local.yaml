@@ -25,6 +25,7 @@ db_config:
   max_open_conns: 5
   max_idle_conns: 10
   conn_max_lifetime: "100s"
+  query_timeout: "5s"
 
 mail:
   smtp_host: "smtp.gmail.com"
